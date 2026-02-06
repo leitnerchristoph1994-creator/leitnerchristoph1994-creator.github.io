@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dart-Liga (12 Teams) – Best of 6 Legs</title>
+  <style>
+    :root { --bg:#0b0c10; --card:#151821; --muted:#9aa3b2; --text:#e8ecf3; --accent:#ff8a00; --line:#252a36; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #0b0c10, #0b0c10 35%, #0f1220);
+      color: var(--text);
+    }
+    header { padding: 22px 16px; border-bottom:1px solid var(--line); position: sticky; top:0; background: rgba(11,12,16,.92); backdrop-filter: blur(8px); z-index: 5; }
+    header h1 { margin:0; font-size: 18px; font-weight: 700; letter-spacing: .2px; }
+    header .sub { margin-top:4px; color: var(--muted); font-size: 13px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+    .row { display:grid; gap: 12px; }
+    @media (min-width: 960px) { .row { grid-template-columns: 1fr 1.2fr; } }
+    .card { background: var(--card); border:1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .card h2 { margin: 0 0 10px; font-size: 14px; color: #f2f5fb; letter-spacing: .2px; }
+    .muted { color: var(--muted); }
+    .controls { display:flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, input, select { font: inherit; }
+    button {
+      background: #1d2230; color: var(--text); border: 1px solid var(--line);
+      padding: 9px 10px; border-radius: 10px; cursor:pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    button.danger { border-color:#4a2330; background:#23131a; color:#ffd6df; }
+
+    table { width:100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; font-size: 13px; }
+    th { text-align:left; color:#cfd6e4; font-weight: 700; }
+    td.right, th.right { text-align: right; }
+
+    .pill { display:inline-flex; align-items:center; gap:6px; padding: 4px 8px; border-radius: 999px; background:#10131b; border:1px solid var(--line); color:#dbe3f2; font-size: 12px; }
+    .accent { color: var(--accent); }
+    .split { display:flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .small { font-size: 12px; }
+
+    .teamlist { display:grid; gap: 8px; }
+    .teamitem { display:grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; }
+    .badge {
+      width: 34px; height: 34px; border-radius: 10px; display:flex; align-items:center; justify-content:center;
+      background:#10131b; border:1px solid var(--line); color:#cfd6e4; font-weight: 700;
+    }
+    .teamitem input {
+      width:100%; background:#10131b; border:1px solid var(--line); color: var(--text);
+      padding: 9px 10px; border-radius: 10px;
+    }
+
+    .roundhead { display:flex; justify-content: space-between; align-items:center; margin: 10px 0 6px; gap: 10px; }
+    .match { display:grid; grid-template-columns: 1fr 90px 1fr 110px; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    @media (max-width: 720px) { .match { grid-template-columns: 1fr 70px 1fr; grid-auto-rows:auto; } .match .meta { grid-column: 1 / -1; } }
+    .match .name { overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .score {
+      display:flex; gap: 6px; align-items:center; justify-content: center;
+      background:#10131b; border:1px solid var(--line); border-radius: 10px; padding: 6px;
+    }
+    .score input {
+      width: 44px; text-align: center; background: transparent; border:1px solid var(--line);
+      color: var(--text); border-radius: 8px; padding: 6px 4px;
+    }
+    .score span { color: var(--muted); font-weight: 700; }
+    .meta { color: var(--muted); font-size: 12px; text-align: right; }
+    .status { font-size: 12px; color: var(--muted); }
+    .done { color: #97f7c9; }
+    .todo { color: #ffd59c; }
+
+    .footer-note { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .linklike { color: var(--accent); cursor:pointer; text-decoration: underline; text-underline-offset: 3px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="split">
+    <div>
+      <h1>Dart-Liga (12 Teams) · Best of 6 Legs</h1>
+      <div class="sub">Kein Unentschieden: gültige Ergebnisse sind nur 4:0, 4:1, 4:2 oder 4:3. Tabelle & Spielplan automatisch.</div>
+    </div>
+    <div class="controls">
+      <button id="btnReset" class="danger">Zurücksetzen</button>
+      <button id="btnExport">Export (JSON)</button>
+      <button id="btnImport">Import (JSON)</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="row">
+    <section class="card">
+      <div class="split">
+        <h2>Teams</h2>
+        <span class="pill"><span class="accent">12</span> Teams</span>
+      </div>
+      <div class="footer-note">Teamnamen anpassen → Spielplan & Tabelle aktualisieren automatisch. Speicherung läuft lokal im Browser.</div>
+      <div id="teams" class="teamlist" style="margin-top: 12px;"></div>
+    </section>
+
+    <section class="card">
+      <div class="split">
+        <h2>Tabelle</h2>
+        <div class="controls">
+          <span id="progress" class="pill">0 / 66 Spiele</span>
+          <span class="pill">Punkte: <span class="accent">2</span>/0</span>
+        </div>
+      </div>
+
+      <table id="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Team</th>
+            <th class="right">Sp</th>
+            <th class="right">S</th>
+            <th class="right">N</th>
+            <th class="right">Pkt</th>
+            <th class="right">Legs</th>
+            <th class="right">Diff</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="footer-note">Sortierung: Punkte, dann Leg-Diff, dann gewonnene Legs.</div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="split">
+      <h2>Spielplan (11 Spieltage, Hinrunde)</h2>
+      <div class="controls">
+        <label class="pill">
+          Spieltag:
+          <select id="roundSelect" style="margin-left:6px; background:#10131b; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:6px 8px;"></select>
+        </label>
+        <button id="btnShowAll">Alle anzeigen</button>
+      </div>
+    </div>
+    <div id="schedule" style="margin-top:10px;"></div>
+    <div class="footer-note">Gültig sind nur 4:0, 4:1, 4:2, 4:3 (oder umgekehrt). Bei falscher Eingabe wird das Spiel nicht gewertet.</div>
+  </section>
+
+  <section class="card">
+    <h2>Kurzanleitung</h2>
+    <div class="footer-note">
+      1) Teamnamen eintragen. 2) Ergebnisse als Legs eintragen (z. B. 4:2). 3) Tabelle aktualisiert sofort.
+      Export/Import ist ein Backup, wenn du den Stand auf ein anderes Gerät übertragen willst.
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const STORAGE_KEY = "dart_league_12_teams_bo6_v2";
+  const defaultTeams = Array.from({length:12}, (_,i)=>`Team ${i+1}`);
+
+  function isValidBo6NoDraw(a, b) {
+    if (!Number.isInteger(a) || !Number.isInteger(b)) return false;
+    if (a < 0 || b < 0) return false;
+    if (a === b) return false;
+    if (a > 4 || b > 4) return false;
+    if (a === 4 && b >= 0 && b <= 3) return true;
+    if (b === 4 && a >= 0 && a <= 3) return true;
+    return false;
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+  function saveState(state) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+  function uid(a,b) { return `${Math.min(a,b)}-${Math.max(a,b)}`; }
+
+  function generateSchedule(n) {
+    const teams = Array.from({length:n}, (_,i)=>i);
+    const rounds = n - 1;
+    const half = n / 2;
+    let arr = teams.slice();
+
+    const schedule = [];
+    for (let r=0; r<rounds; r++) {
+      const pairs = [];
+      for (let i=0; i<half; i++) {
+        const a = arr[i];
+        const b = arr[n-1-i];
+        const home = (r % 2 === 0) ? a : b;
+        const away = (r % 2 === 0) ? b : a;
+        pairs.push([home, away]);
+      }
+      schedule.push(pairs);
+
+      const fixed = arr[0];
+      const rest = arr.slice(1);
+      rest.unshift(rest.pop());
+      arr = [fixed, ...rest];
+    }
+    return schedule;
+  }
+
+  const schedule = generateSchedule(12);
+
+  const state = loadState() ?? { teams: defaultTeams.slice(), results: {} };
+
+  const elTeams = document.getElementById("teams");
+  const elTbody = document.querySelector("#table tbody");
+  const elSchedule = document.getElementById("schedule");
+  const elRoundSelect = document.getElementById("roundSelect");
+  const elProgress = document.getElementById("progress");
+
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function getSelectedRound() {
+    return elRoundSelect.value || "all";
+  }
+
+  // ✅ Render Teams only ONCE, no rerender on each keystroke.
+  let teamsRendered = false;
+  function renderTeamsOnce() {
+    if (teamsRendered) return;
+    teamsRendered = true;
+
+    elTeams.innerHTML = "";
+    state.teams.forEach((name, idx) => {
+      const wrap = document.createElement("div");
+      wrap.className = "teamitem";
+      wrap.innerHTML = `
+        <div class="badge">${idx+1}</div>
+        <input type="text" aria-label="Teamname ${idx+1}" />
+      `;
+
+      const input = wrap.querySelector("input");
+      input.value = name;
+
+      // live update: save + refresh table & schedule (but NOT the team inputs)
+      input.addEventListener("input", () => {
+        state.teams[idx] = input.value.trim() || `Team ${idx+1}`;
+        saveState(state);
+        renderTable();
+        renderSchedule(getSelectedRound());
+      });
+
+      elTeams.appendChild(wrap);
+    });
+  }
+
+  function getResult(a, b) {
+    const key = uid(a,b);
+    const r = state.results[key];
+    if (!r) return null;
+    const min = Math.min(a,b);
+    const max = Math.max(a,b);
+    const minScore = r[min];
+    const maxScore = r[max];
+    if (!Number.isFinite(minScore) || !Number.isFinite(maxScore)) return null;
+    return { [min]: minScore, [max]: maxScore };
+  }
+
+  function setResult(a, b, aScore, bScore) {
+    const key = uid(a,b);
+    const min = Math.min(a,b);
+    const max = Math.max(a,b);
+    const obj = {};
+    obj[min] = (a === min) ? aScore : bScore;
+    obj[max] = (a === min) ? bScore : aScore;
+    state.results[key] = obj;
+    saveState(state);
+  }
+
+  function clearResult(a, b) {
+    const key = uid(a,b);
+    delete state.results[key];
+    saveState(state);
+  }
+
+  function computeTable() {
+    const stats = Array.from({length:12}, (_,i)=>({
+      idx: i,
+      team: state.teams[i],
+      played: 0,
+      win: 0,
+      loss: 0,
+      pts: 0,
+      legsFor: 0,
+      legsAgainst: 0
+    }));
+
+    let playedMatches = 0;
+
+    for (let a=0; a<12; a++) {
+      for (let b=a+1; b<12; b++) {
+        const res = getResult(a,b);
+        if (!res) continue;
+
+        const as = res[a];
+        const bs = res[b];
+        if (!isValidBo6NoDraw(as, bs)) continue;
+
+        playedMatches++;
+
+        stats[a].played++; stats[b].played++;
+        stats[a].legsFor += as; stats[a].legsAgainst += bs;
+        stats[b].legsFor += bs; stats[b].legsAgainst += as;
+
+        if (as > bs) { stats[a].win++; stats[b].loss++; stats[a].pts += 2; }
+        else { stats[b].win++; stats[a].loss++; stats[b].pts += 2; }
+      }
+    }
+
+    elProgress.textContent = `${playedMatches} / 66 Spiele`;
+
+    return stats.slice().sort((x,y) => {
+      const dx = x.legsFor - x.legsAgainst;
+      const dy = y.legsFor - y.legsAgainst;
+      if (y.pts !== x.pts) return y.pts - x.pts;
+      if (dy !== dx) return dy - dx;
+      if (y.legsFor !== x.legsFor) return y.legsFor - x.legsFor;
+      return x.team.localeCompare(y.team);
+    });
+  }
+
+  function renderTable() {
+    const rows = computeTable();
+    elTbody.innerHTML = "";
+    rows.forEach((r, pos) => {
+      const diff = r.legsFor - r.legsAgainst;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${pos+1}</td>
+        <td>${escapeHtml(r.team)}</td>
+        <td class="right">${r.played}</td>
+        <td class="right">${r.win}</td>
+        <td class="right">${r.loss}</td>
+        <td class="right"><strong>${r.pts}</strong></td>
+        <td class="right">${r.legsFor}:${r.legsAgainst}</td>
+        <td class="right">${diff >= 0 ? "+"+diff : diff}</td>
+      `;
+      elTbody.appendChild(tr);
+    });
+  }
+
+  function renderRoundSelect() {
+    elRoundSelect.innerHTML = "";
+    const optAll = document.createElement("option");
+    optAll.value = "all";
+    optAll.textContent = "Alle Spieltage";
+    elRoundSelect.appendChild(optAll);
+
+    schedule.forEach((_, i) => {
+      const opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = `Spieltag ${i+1}`;
+      elRoundSelect.appendChild(opt);
+    });
+    elRoundSelect.value = "all";
+  }
+
+  function matchStatus(a, b) {
+    const res = getResult(a,b);
+    if (!res) return { text: "offen", cls: "todo" };
+    const as = res[a], bs = res[b];
+    if (!isValidBo6NoDraw(as, bs)) return { text: "ungültig", cls: "todo" };
+    return { text: "eingetragen", cls: "done" };
+  }
+
+  function renderSchedule(selectedRound = "all") {
+    elSchedule.innerHTML = "";
+
+    const roundsToRender = (selectedRound === "all")
+      ? schedule.map((m, i)=>({i, matches:m}))
+      : [{ i: parseInt(selectedRound,10), matches: schedule[parseInt(selectedRound,10)] }];
+
+    roundsToRender.forEach(({i, matches}) => {
+      const doneCount = matches.reduce((acc,[a,b]) => acc + (matchStatus(a,b).cls === "done" ? 1 : 0), 0);
+
+      const head = document.createElement("div");
+      head.className = "roundhead";
+      head.innerHTML = `
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span class="pill">Spieltag <span class="accent">${i+1}</span></span>
+          <span class="status ${doneCount===matches.length ? "done" : "todo"}">${doneCount}/${matches.length} Spiele</span>
+        </div>
+        <span class="muted small">Gültig: 4:0–4:3 (kein Remis)</span>
+      `;
+      elSchedule.appendChild(head);
+
+      matches.forEach(([home, away]) => {
+        const status = matchStatus(home, away);
+        const res = getResult(home, away);
+        const hs = res ? res[home] : "";
+        const as = res ? res[away] : "";
+
+        const row = document.createElement("div");
+        row.className = "match";
+        row.innerHTML = `
+          <div class="name" title="${escapeHtml(state.teams[home])}"><strong>${escapeHtml(state.teams[home])}</strong></div>
+          <div class="score" aria-label="Ergebnis (Legs)">
+            <input inputmode="numeric" pattern="[0-9]*" type="number" min="0" max="4" step="1" value="${hs}" aria-label="Heim Legs" />
+            <span>:</span>
+            <input inputmode="numeric" pattern="[0-9]*" type="number" min="0" max="4" step="1" value="${as}" aria-label="Gast Legs" />
+          </div>
+          <div class="name" title="${escapeHtml(state.teams[away])}"><strong>${escapeHtml(state.teams[away])}</strong></div>
+          <div class="meta">
+            <span class="${status.cls}">${status.text}</span>
+            <span class="muted"> · </span>
+            <span class="linklike" data-action="clear">löschen</span>
+          </div>
+        `;
+
+        const inputs = row.querySelectorAll("input");
+        const clearLink = row.querySelector('[data-action="clear"]');
+
+        function commit() {
+          const v1 = inputs[0].value;
+          const v2 = inputs[1].value;
+
+          if (v1 === "" && v2 === "") {
+            clearResult(home, away);
+            renderTable();
+            renderSchedule(getSelectedRound());
+            return;
+          }
+
+          const n1 = parseInt(v1,10);
+          const n2 = parseInt(v2,10);
+          if (!Number.isFinite(n1) || !Number.isFinite(n2)) return;
+          if (!isValidBo6NoDraw(n1, n2)) return;
+
+          setResult(home, away, n1, n2);
+          renderTable();
+          renderSchedule(getSelectedRound());
+        }
+
+        inputs.forEach(inp => {
+          inp.addEventListener("change", commit);
+          inp.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
+        });
+
+        clearLink.addEventListener("click", () => {
+          clearResult(home, away);
+          renderTable();
+          renderSchedule(getSelectedRound());
+        });
+
+        elSchedule.appendChild(row);
+      });
+    });
+  }
+
+  function fullRender() {
+    renderTeamsOnce();
+    renderTable();
+    renderSchedule(getSelectedRound());
+  }
+
+  // Controls
+  renderRoundSelect();
+  elRoundSelect.addEventListener("change", () => renderSchedule(getSelectedRound()));
+
+  document.getElementById("btnShowAll").addEventListener("click", () => {
+    elRoundSelect.value = "all";
+    renderSchedule("all");
+  });
+
+  document.getElementById("btnReset").addEventListener("click", () => {
+    const sure = confirm("Zurücksetzen: Alle Ergebnisse löschen? (Teamnamen bleiben, außer du bestätigst im nächsten Schritt.)");
+    if (!sure) return;
+
+    state.results = {};
+    saveState(state);
+
+    const resetNames = confirm("Auch Teamnamen auf Standard zurücksetzen?");
+    if (resetNames) {
+      state.teams = defaultTeams.slice();
+      // Team-Inputs aktualisieren (ohne neu zu rendern)
+      const inputs = elTeams.querySelectorAll("input");
+      inputs.forEach((inp, i) => inp.value = state.teams[i]);
+    }
+    saveState(state);
+
+    elRoundSelect.value = "all";
+    fullRender();
+  });
+
+  document.getElementById("btnExport").addEventListener("click", async () => {
+    const data = JSON.stringify(state, null, 2);
+    try {
+      await navigator.clipboard.writeText(data);
+      alert("Export wurde in die Zwischenablage kopiert.");
+    } catch {
+      const blob = new Blob([data], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dart-liga-export.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+  });
+
+  document.getElementById("btnImport").addEventListener("click", async () => {
+    const raw = prompt("Füge hier den JSON-Export ein (oder drücke Abbrechen):");
+    if (!raw) return;
+    try {
+      const obj = JSON.parse(raw);
+      if (!obj || !Array.isArray(obj.teams) || typeof obj.results !== "object") throw new Error("invalid");
+      if (obj.teams.length !== 12) throw new Error("teams");
+
+      state.teams = obj.teams.map((t,i)=> (String(t).trim() || `Team ${i+1}`));
+      state.results = obj.results || {};
+      saveState(state);
+
+      // Team-Inputs aktualisieren (ohne DOM neu aufzubauen)
+      renderTeamsOnce();
+      const inputs = elTeams.querySelectorAll("input");
+      inputs.forEach((inp, i) => inp.value = state.teams[i]);
+
+      alert("Import erfolgreich.");
+      fullRender();
+    } catch {
+      alert("Import fehlgeschlagen. Bitte sicherstellen, dass es ein gültiger Export aus dieser Seite ist.");
+    }
+  });
+
+  // Initial
+  fullRender();
+})();
+</script>
+</body>
+</html>
