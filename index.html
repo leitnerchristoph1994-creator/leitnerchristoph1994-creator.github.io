@@ -106,7 +106,7 @@ th,td{
 <header>
 <h1>Dart Liga – 9 Spieler</h1>
 <div style="color:var(--muted);font-size:14px;">
-First to 6 Legs · Kein Unentschieden
+First to 6 Legs · Kein Unentschieden · 9 Spieltage
 </div>
 </header>
 
@@ -142,7 +142,7 @@ First to 6 Legs · Kein Unentschieden
 
 <script>
 
-const STORAGE_KEY="dart_liga_mobile_v1";
+const STORAGE_KEY="dart_liga_mobile_v2";
 const PLAYERS=9;
 const WIN_LEGS=6;
 const POINTS_WIN=2;
@@ -152,13 +152,20 @@ let state={
   results:{}
 };
 
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
-function load(){
-  const raw=localStorage.getItem(STORAGE_KEY);
-  if(raw) state=JSON.parse(raw);
+function save(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
 }
 
-function uid(a,b){return `${Math.min(a,b)}-${Math.max(a,b)}`;}
+function load(){
+  const raw=localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    state=JSON.parse(raw);
+  }
+}
+
+function uid(a,b){
+  return `${Math.min(a,b)}-${Math.max(a,b)}`;
+}
 
 function generateSchedule(n){
   const players=[...Array(n).keys()];
@@ -289,11 +296,25 @@ function renderSchedule(){
       `;
 
       const inputs=card.querySelectorAll("input");
+
       inputs.forEach(inp=>{
         inp.onchange=()=>{
-          const n1=parseInt(inputs[0].value);
-          const n2=parseInt(inputs[1].value);
+          const v1=inputs[0].value;
+          const v2=inputs[1].value;
+
+          // 🔥 Löschen wenn beide leer
+          if(v1==="" && v2===""){
+            delete state.results[key];
+            save();
+            renderTable();
+            return;
+          }
+
+          const n1=parseInt(v1);
+          const n2=parseInt(v2);
+
           if(!isValid(n1,n2)) return;
+
           state.results[key]={[a]:n1,[b]:n2};
           save();
           renderTable();
