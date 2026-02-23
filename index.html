@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dart Liga – 9 Spieler – First to 6</title>
+<title>Dart Liga – 9 Spieler</title>
 
 <style>
 :root{
   --bg:#0f1116;
-  --card:#1a1f2b;
-  --line:#2a3242;
+  --card:#1c2230;
+  --line:#2b3447;
   --text:#e8ecf3;
   --muted:#9aa3b2;
   --accent:#ff8a00;
@@ -24,57 +24,79 @@ header{
   padding:18px;
   border-bottom:1px solid var(--line);
 }
+h1{margin:0;font-size:20px;}
 main{
-  max-width:1100px;
+  max-width:700px;
   margin:auto;
   padding:16px;
-  display:grid;
+  display:flex;
+  flex-direction:column;
   gap:20px;
 }
 .card{
   background:var(--card);
   padding:16px;
-  border-radius:12px;
+  border-radius:14px;
   border:1px solid var(--line);
-}
-h2{margin-top:0}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-th,td{
-  padding:8px;
-  border-bottom:1px solid var(--line);
-  text-align:center;
-}
-input{
-  width:50px;
-  padding:6px;
-  text-align:center;
-  font-size:16px;
 }
 .playerInput{
   width:100%;
-  padding:8px;
-  margin-bottom:8px;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:#141925;
+  color:white;
 }
-.round{
-  margin-bottom:20px;
+.matchCard{
+  background:#141925;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:12px;
+}
+.matchCard .player{
+  text-align:center;
+  font-weight:600;
+  font-size:16px;
+  margin-bottom:6px;
+}
+.scoreRow{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:12px;
+  margin:8px 0;
+}
+.scoreRow input{
+  width:55px;
+  height:45px;
+  font-size:18px;
+  text-align:center;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:#0f1116;
+  color:white;
 }
 .pause{
-  margin-top:6px;
+  text-align:center;
   color:var(--muted);
+  font-size:14px;
+  margin-top:8px;
 }
-
-@media(max-width:700px){
-  table{
-    display:block;
-    overflow-x:auto;
-  }
-  input{
-    width:45px;
-  }
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+th,td{
+  padding:6px;
+  border-bottom:1px solid var(--line);
+  text-align:center;
+}
+.sectionTitle{
+  font-size:18px;
+  margin-bottom:10px;
 }
 </style>
 </head>
@@ -83,39 +105,36 @@ input{
 
 <header>
 <h1>Dart Liga – 9 Spieler</h1>
-<div style="color:var(--muted)">First to 6 Legs · Kein Unentschieden · 9 Spieltage</div>
+<div style="color:var(--muted);font-size:14px;">
+First to 6 Legs · Kein Unentschieden
+</div>
 </header>
 
 <main>
 
 <div class="card">
-<h2>Spieler</h2>
+<div class="sectionTitle">Spieler</div>
 <div id="players"></div>
 </div>
 
 <div class="card">
-<h2>Tabelle</h2>
-<div style="overflow-x:auto;">
+<div class="sectionTitle">Tabelle</div>
 <table>
 <thead>
 <tr>
 <th>#</th>
 <th>Name</th>
 <th>Sp</th>
-<th>S</th>
-<th>N</th>
 <th>Pkt</th>
-<th>Legs</th>
 <th>Diff</th>
 </tr>
 </thead>
 <tbody id="tableBody"></tbody>
 </table>
 </div>
-</div>
 
 <div class="card">
-<h2>Spielplan</h2>
+<div class="sectionTitle">Spielplan</div>
 <div id="schedule"></div>
 </div>
 
@@ -123,8 +142,7 @@ input{
 
 <script>
 
-const STORAGE_KEY="dart_liga_9_ft6";
-
+const STORAGE_KEY="dart_liga_mobile_v1";
 const PLAYERS=9;
 const WIN_LEGS=6;
 const POINTS_WIN=2;
@@ -134,20 +152,13 @@ let state={
   results:{}
 };
 
-function save(){
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
-}
-
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}
 function load(){
   const raw=localStorage.getItem(STORAGE_KEY);
-  if(raw){
-    state=JSON.parse(raw);
-  }
+  if(raw) state=JSON.parse(raw);
 }
 
-function uid(a,b){
-  return `${Math.min(a,b)}-${Math.max(a,b)}`;
-}
+function uid(a,b){return `${Math.min(a,b)}-${Math.max(a,b)}`;}
 
 function generateSchedule(n){
   const players=[...Array(n).keys()];
@@ -161,9 +172,7 @@ function generateSchedule(n){
     for(let i=0;i<arr.length/2;i++){
       const a=arr[i];
       const b=arr[arr.length-1-i];
-      if(a!=="bye"&&b!=="bye"){
-        matches.push([a,b]);
-      }
+      if(a!=="bye"&&b!=="bye") matches.push([a,b]);
     }
     schedule.push(matches);
     const fixed=arr[0];
@@ -180,8 +189,8 @@ function isValid(a,b){
   if(a===b) return false;
   if(a<0||b<0) return false;
   if(a>WIN_LEGS||b>WIN_LEGS) return false;
-  if(a===WIN_LEGS && b<WIN_LEGS) return true;
-  if(b===WIN_LEGS && a<WIN_LEGS) return true;
+  if(a===WIN_LEGS&&b<WIN_LEGS) return true;
+  if(b===WIN_LEGS&&a<WIN_LEGS) return true;
   return false;
 }
 
@@ -204,7 +213,7 @@ function renderPlayers(){
 
 function computeTable(){
   const stats=state.players.map((p,i)=>({
-    i,name:p,played:0,win:0,loss:0,pts:0,legsFor:0,legsAgainst:0
+    i,name:p,played:0,pts:0,legsFor:0,legsAgainst:0
   }));
 
   for(let key in state.results){
@@ -214,27 +223,20 @@ function computeTable(){
 
     stats[a].played++;
     stats[b].played++;
-
     stats[a].legsFor+=r[a];
     stats[a].legsAgainst+=r[b];
     stats[b].legsFor+=r[b];
     stats[b].legsAgainst+=r[a];
 
-    if(r[a]>r[b]){
-      stats[a].win++; stats[b].loss++;
-      stats[a].pts+=POINTS_WIN;
-    }else{
-      stats[b].win++; stats[a].loss++;
-      stats[b].pts+=POINTS_WIN;
-    }
+    if(r[a]>r[b]) stats[a].pts+=POINTS_WIN;
+    else stats[b].pts+=POINTS_WIN;
   }
 
   return stats.sort((x,y)=>{
     if(y.pts!==x.pts) return y.pts-x.pts;
     const dx=x.legsFor-x.legsAgainst;
     const dy=y.legsFor-y.legsAgainst;
-    if(dy!==dx) return dy-dx;
-    return y.legsFor-x.legsFor;
+    return dy-dx;
   });
 }
 
@@ -242,7 +244,6 @@ function renderTable(){
   const tbody=document.getElementById("tableBody");
   tbody.innerHTML="";
   const rows=computeTable();
-
   rows.forEach((r,pos)=>{
     const diff=r.legsFor-r.legsAgainst;
     const tr=document.createElement("tr");
@@ -250,10 +251,7 @@ function renderTable(){
       <td>${pos+1}</td>
       <td>${r.name}</td>
       <td>${r.played}</td>
-      <td>${r.win}</td>
-      <td>${r.loss}</td>
       <td>${r.pts}</td>
-      <td>${r.legsFor}:${r.legsAgainst}</td>
       <td>${diff>=0? "+"+diff: diff}</td>
     `;
     tbody.appendChild(tr);
@@ -263,11 +261,11 @@ function renderTable(){
 function renderSchedule(){
   const div=document.getElementById("schedule");
   div.innerHTML="";
-
   schedule.forEach((round,ri)=>{
-    const roundDiv=document.createElement("div");
-    roundDiv.className="round";
-    roundDiv.innerHTML=`<h3>Spieltag ${ri+1}</h3>`;
+    const roundTitle=document.createElement("h3");
+    roundTitle.innerText="Spieltag "+(ri+1);
+    div.appendChild(roundTitle);
+
     const used=new Set();
 
     round.forEach(([a,b])=>{
@@ -277,16 +275,20 @@ function renderSchedule(){
       const as=res[a]??"";
       const bs=res[b]??"";
 
-      const row=document.createElement("div");
-      row.innerHTML=`
-        ${state.players[a]}
-        <input type="number" min="0" max="${WIN_LEGS}" value="${as}">
-        :
-        <input type="number" min="0" max="${WIN_LEGS}" value="${bs}">
-        ${state.players[b]}
+      const card=document.createElement("div");
+      card.className="matchCard";
+
+      card.innerHTML=`
+        <div class="player">${state.players[a]}</div>
+        <div class="scoreRow">
+          <input type="number" min="0" max="${WIN_LEGS}" value="${as}">
+          <div>:</div>
+          <input type="number" min="0" max="${WIN_LEGS}" value="${bs}">
+        </div>
+        <div class="player">${state.players[b]}</div>
       `;
 
-      const inputs=row.querySelectorAll("input");
+      const inputs=card.querySelectorAll("input");
       inputs.forEach(inp=>{
         inp.onchange=()=>{
           const n1=parseInt(inputs[0].value);
@@ -298,16 +300,14 @@ function renderSchedule(){
         };
       });
 
-      roundDiv.appendChild(row);
+      div.appendChild(card);
     });
 
     const pause=state.players.find((_,i)=>!used.has(i));
     const pauseDiv=document.createElement("div");
     pauseDiv.className="pause";
     pauseDiv.innerText="Pause: "+pause;
-    roundDiv.appendChild(pauseDiv);
-
-    div.appendChild(roundDiv);
+    div.appendChild(pauseDiv);
   });
 }
 
