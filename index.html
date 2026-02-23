@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dart Liga – 9 Spieler – First to 6</title>
 
 <style>
-:root {
+:root{
   --bg:#0f1116;
   --card:#1a1f2b;
   --line:#2a3242;
@@ -21,13 +21,13 @@ body{
   font-family:system-ui;
 }
 header{
-  padding:20px;
+  padding:18px;
   border-bottom:1px solid var(--line);
 }
 main{
   max-width:1100px;
   margin:auto;
-  padding:20px;
+  padding:16px;
   display:grid;
   gap:20px;
 }
@@ -38,6 +38,7 @@ main{
   border:1px solid var(--line);
 }
 h2{margin-top:0}
+
 table{
   width:100%;
   border-collapse:collapse;
@@ -45,24 +46,35 @@ table{
 th,td{
   padding:8px;
   border-bottom:1px solid var(--line);
-}
-input{
-  width:45px;
   text-align:center;
 }
-button{
-  padding:6px 10px;
-  background:var(--accent);
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+input{
+  width:50px;
+  padding:6px;
+  text-align:center;
+  font-size:16px;
+}
+.playerInput{
+  width:100%;
+  padding:8px;
+  margin-bottom:8px;
 }
 .round{
   margin-bottom:20px;
 }
 .pause{
+  margin-top:6px;
   color:var(--muted);
-  font-size:14px;
+}
+
+@media(max-width:700px){
+  table{
+    display:block;
+    overflow-x:auto;
+  }
+  input{
+    width:45px;
+  }
 }
 </style>
 </head>
@@ -70,80 +82,90 @@ button{
 <body>
 
 <header>
-  <h1>Dart Liga – 9 Spieler – First to 6</h1>
-  <div style="color:var(--muted)">
-    First to 6 Legs · Kein Unentschieden · 9 Spieltage · 1 Spieler Pause pro Runde
-  </div>
+<h1>Dart Liga – 9 Spieler</h1>
+<div style="color:var(--muted)">First to 6 Legs · Kein Unentschieden · 9 Spieltage</div>
 </header>
 
 <main>
 
 <div class="card">
-  <h2>Spieler</h2>
-  <div id="players"></div>
+<h2>Spieler</h2>
+<div id="players"></div>
 </div>
 
 <div class="card">
-  <h2>Tabelle</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Name</th>
-        <th>Sp</th>
-        <th>S</th>
-        <th>N</th>
-        <th>Pkt</th>
-        <th>Legs</th>
-        <th>Diff</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+<h2>Tabelle</h2>
+<div style="overflow-x:auto;">
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Name</th>
+<th>Sp</th>
+<th>S</th>
+<th>N</th>
+<th>Pkt</th>
+<th>Legs</th>
+<th>Diff</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+</div>
 </div>
 
 <div class="card">
-  <h2>Spielplan</h2>
-  <div id="schedule"></div>
+<h2>Spielplan</h2>
+<div id="schedule"></div>
 </div>
 
 </main>
 
 <script>
 
-const PLAYERS = 9;
-const WIN_LEGS = 6;
-const POINTS_WIN = 2;
+const STORAGE_KEY="dart_liga_9_ft6";
 
-let state = {
-  players: Array.from({length:PLAYERS}, (_,i)=>`Spieler ${i+1}`),
-  results: {}
+const PLAYERS=9;
+const WIN_LEGS=6;
+const POINTS_WIN=2;
+
+let state={
+  players:Array.from({length:PLAYERS},(_,i)=>`Spieler ${i+1}`),
+  results:{}
 };
+
+function save(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+}
+
+function load(){
+  const raw=localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    state=JSON.parse(raw);
+  }
+}
 
 function uid(a,b){
   return `${Math.min(a,b)}-${Math.max(a,b)}`;
 }
 
 function generateSchedule(n){
-  const players = Array.from({length:n}, (_,i)=>i);
-  players.push("bye"); // Dummy für Pause
-
-  const rounds = n;
-  const schedule = [];
-
-  let arr = players.slice();
+  const players=[...Array(n).keys()];
+  players.push("bye");
+  const rounds=n;
+  const schedule=[];
+  let arr=players.slice();
 
   for(let r=0;r<rounds;r++){
     const matches=[];
     for(let i=0;i<arr.length/2;i++){
       const a=arr[i];
       const b=arr[arr.length-1-i];
-      if(a!=="bye" && b!=="bye"){
+      if(a!=="bye"&&b!=="bye"){
         matches.push([a,b]);
       }
     }
     schedule.push(matches);
-
     const fixed=arr[0];
     const rest=arr.slice(1);
     rest.unshift(rest.pop());
@@ -152,43 +174,37 @@ function generateSchedule(n){
   return schedule;
 }
 
-const schedule = generateSchedule(PLAYERS);
+const schedule=generateSchedule(PLAYERS);
+
+function isValid(a,b){
+  if(a===b) return false;
+  if(a<0||b<0) return false;
+  if(a>WIN_LEGS||b>WIN_LEGS) return false;
+  if(a===WIN_LEGS && b<WIN_LEGS) return true;
+  if(b===WIN_LEGS && a<WIN_LEGS) return true;
+  return false;
+}
 
 function renderPlayers(){
   const div=document.getElementById("players");
   div.innerHTML="";
   state.players.forEach((p,i)=>{
     const input=document.createElement("input");
+    input.className="playerInput";
     input.value=p;
     input.oninput=()=>{
-      state.players[i]=input.value || `Spieler ${i+1}`;
+      state.players[i]=input.value||`Spieler ${i+1}`;
+      save();
       renderTable();
       renderSchedule();
     };
     div.appendChild(input);
-    div.appendChild(document.createElement("br"));
   });
 }
 
-function isValid(a,b){
-  if(a===b) return false;
-  if(a<0 || b<0) return false;
-  if(a>WIN_LEGS || b>WIN_LEGS) return false;
-  if(a===WIN_LEGS && b<WIN_LEGS) return true;
-  if(b===WIN_LEGS && a<WIN_LEGS) return true;
-  return false;
-}
-
 function computeTable(){
-  const stats = state.players.map((p,i)=>({
-    i,
-    name:p,
-    played:0,
-    win:0,
-    loss:0,
-    pts:0,
-    legsFor:0,
-    legsAgainst:0
+  const stats=state.players.map((p,i)=>({
+    i,name:p,played:0,win:0,loss:0,pts:0,legsFor:0,legsAgainst:0
   }));
 
   for(let key in state.results){
@@ -201,17 +217,14 @@ function computeTable(){
 
     stats[a].legsFor+=r[a];
     stats[a].legsAgainst+=r[b];
-
     stats[b].legsFor+=r[b];
     stats[b].legsAgainst+=r[a];
 
     if(r[a]>r[b]){
-      stats[a].win++;
-      stats[b].loss++;
+      stats[a].win++; stats[b].loss++;
       stats[a].pts+=POINTS_WIN;
     }else{
-      stats[b].win++;
-      stats[a].loss++;
+      stats[b].win++; stats[a].loss++;
       stats[b].pts+=POINTS_WIN;
     }
   }
@@ -231,8 +244,8 @@ function renderTable(){
   const rows=computeTable();
 
   rows.forEach((r,pos)=>{
-    const tr=document.createElement("tr");
     const diff=r.legsFor-r.legsAgainst;
+    const tr=document.createElement("tr");
     tr.innerHTML=`
       <td>${pos+1}</td>
       <td>${r.name}</td>
@@ -255,20 +268,18 @@ function renderSchedule(){
     const roundDiv=document.createElement("div");
     roundDiv.className="round";
     roundDiv.innerHTML=`<h3>Spieltag ${ri+1}</h3>`;
-    const playersInRound=new Set();
+    const used=new Set();
 
     round.forEach(([a,b])=>{
-      playersInRound.add(a);
-      playersInRound.add(b);
-
-      const row=document.createElement("div");
+      used.add(a); used.add(b);
       const key=uid(a,b);
       const res=state.results[key]||{};
       const as=res[a]??"";
       const bs=res[b]??"";
 
+      const row=document.createElement("div");
       row.innerHTML=`
-        ${state.players[a]} 
+        ${state.players[a]}
         <input type="number" min="0" max="${WIN_LEGS}" value="${as}">
         :
         <input type="number" min="0" max="${WIN_LEGS}" value="${bs}">
@@ -281,10 +292,8 @@ function renderSchedule(){
           const n1=parseInt(inputs[0].value);
           const n2=parseInt(inputs[1].value);
           if(!isValid(n1,n2)) return;
-          state.results[key]={
-            [a]:n1,
-            [b]:n2
-          };
+          state.results[key]={[a]:n1,[b]:n2};
+          save();
           renderTable();
         };
       });
@@ -292,7 +301,7 @@ function renderSchedule(){
       roundDiv.appendChild(row);
     });
 
-    const pause = state.players.find((_,i)=>!playersInRound.has(i));
+    const pause=state.players.find((_,i)=>!used.has(i));
     const pauseDiv=document.createElement("div");
     pauseDiv.className="pause";
     pauseDiv.innerText="Pause: "+pause;
@@ -302,6 +311,7 @@ function renderSchedule(){
   });
 }
 
+load();
 renderPlayers();
 renderTable();
 renderSchedule();
